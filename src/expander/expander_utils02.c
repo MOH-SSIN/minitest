@@ -62,10 +62,17 @@ char	*get_var_odd(char *str_var, t_expand *env)
 	get_var = NULL;
 	str_exp = NULL;
 	get_var = ft_get_var(str_var);
+	printf("----->get_var:%s\n",get_var);
 	if (get_var[0])
+	{
+		printf("la ma5awiche\n");
 		str_exp = get_str_env(env, get_var);
+	}
 	else
+	{
+		printf("5awi\n");
 		str_exp = ft_strdup("$");
+	}
 	return (str_exp);
 }
 
@@ -91,9 +98,21 @@ char	*expand_string_variables(char *str_var, char *str_exp,
 				i++;
 			count = i - count;
 			if (count % 2 != 0)
+			{
+				// printf("i = %d\n",i);
+				// printf("! : str_var :%s\n",str_var);
+				// printf("! : str_var + i:%s\n",str_var + i);
 				str_exp = get_var_odd(str_var + i, env);
+				// printf("! : str_exp:%s\n",str_exp);
+			}
 			else
+			{
+				// printf("i = %d\n",i);
+				// printf("! : str_var :%s\n",str_var);
+				// printf("! : str_var + i:%s\n",str_var + i);
 				str_exp = ft_strjoin("$", ft_get_var(str_var + i));
+				// printf("= : str_exp:%s\n",str_exp);
+			}
 		}
 	}
 	return (get_string_exp(str_var, str_exp));

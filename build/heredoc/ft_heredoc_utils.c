@@ -46,11 +46,14 @@ char	*expand_heredoc(char *cmd, t_expand *env, int exit_status)
 		str_var = get_until_var_exp(cmd + i);
 		printf("str_var:%s\n",str_var);
 		str_exp = ft_str_exp_double_q(str_var, env, exit_status);
+		printf("str_exp:%s\n",str_exp);
 		if (!buffer)
 			buffer = ft_strdup("");
 		buffer = ft_strjoin(buffer, str_exp);
+		// printf("i = %d\n",i);
 		i += ft_strlen(str_var);
 	}
+	// exit(1);
 	return (buffer);
 }
 
