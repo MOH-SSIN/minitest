@@ -6,7 +6,7 @@
 /*   By: mez-zahi <mez-zahi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 13:54:22 by belguabd          #+#    #+#             */
-/*   Updated: 2025/04/17 20:25:49 by mez-zahi         ###   ########.fr       */
+/*   Updated: 2025/05/02 14:43:44 by mez-zahi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,11 +16,11 @@ int	g_sig;
 
 void	sig_handler(int sig)
 {
-	// rl_catch_signals = 0;
+	rl_catch_signals = 0;
 	if (sig == SIGINT)
 	{
 		write(1, "\n", 1);
-		// rl_replace_line("", 0);
+		rl_replace_line("", 0);
 		rl_on_new_line();
 		rl_redisplay();
 		g_sig = 1;
@@ -55,22 +55,22 @@ int	main(int ac, char const *av[], char *env[])
 
 	(1) && ((void)ac, (void)av, cmd = NULL, env_e = NULL);
 	init_env(&env_e, env);
-	// rl_catch_signals = 0;
+	rl_catch_signals = 0;
 	while (1 && isatty(STDIN_FILENO))
 	{
 		head = NULL;
 		process_shell_input(&head, &cmd, &exit_st, env_e);
-		if (ft_hr_dc_cntrl_c(head))
-			clean_fd_cmd(cmd);
-		else if (handle_errors_cmd(head, cmd) == -1)
-			clean_exit(cmd, &exit_st);
-		else
-		{
-			head = expand_and_print_vars(head, env_e, exit_st);
-			head = rm_redirect(ft_concatenate(head));
-			ft_execution(passing(skip_dr(head)), &env_e, &exit_st);
-			clean_fd_cmd(cmd);
-		}
-		g_sig = 0;
+		// if (ft_hr_dc_cntrl_c(head))
+		// 	clean_fd_cmd(cmd);
+		// else if (handle_errors_cmd(head, cmd) == -1)
+		// 	clean_exit(cmd, &exit_st);
+		// else
+		// {
+		// 	head = expand_and_print_vars(head, env_e, exit_st);
+		// 	head = rm_redirect(ft_concatenate(head));
+		// 	ft_execution(passing(skip_dr(head)), &env_e, &exit_st);
+		// 	clean_fd_cmd(cmd);
+		// }
+		// g_sig = 0;
 	}
 }

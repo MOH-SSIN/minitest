@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ft_heredoc_utils.c                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: belguabd <belguabd@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mez-zahi <mez-zahi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 02:43:38 by belguabd          #+#    #+#             */
-/*   Updated: 2024/05/10 08:45:37 by belguabd         ###   ########.fr       */
+/*   Updated: 2025/05/02 14:50:06 by mez-zahi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,6 +44,7 @@ char	*expand_heredoc(char *cmd, t_expand *env, int exit_status)
 	while (cmd[i])
 	{
 		str_var = get_until_var_exp(cmd + i);
+		printf("str_var:%s\n",str_var);
 		str_exp = ft_str_exp_double_q(str_var, env, exit_status);
 		if (!buffer)
 			buffer = ft_strdup("");
