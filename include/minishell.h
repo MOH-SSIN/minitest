@@ -3,244 +3,299 @@
 /*                                                        :::      ::::::::   */
 /*   minishell.h                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: belguabd <belguabd@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mez-zahi <mez-zahi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/03/02 13:54:22 by belguabd          #+#    #+#             */
-/*   Updated: 2024/05/11 10:06:27 by belguabd         ###   ########.fr       */
+/*   Created: 2025/05/15 18:39:49 by mez-zahi          #+#    #+#             */
+/*   Updated: 2025/06/25 17:50:54 by mez-zahi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef MINISHELL_H
 # define MINISHELL_H
-# include <stdio.h>
-# include <fcntl.h>
-# include <stdlib.h>
-# include <unistd.h>
-# include <stdbool.h>
-# include <readline/readline.h>
-# include <readline/history.h>
-# include <sys/param.h>
-# include <termios.h>
-# include <dirent.h>
 
-# define COLOR_RESET "\x1b[0m"
-# define COLOR_GREEN "\x1b[32m"
+# include "limits.h"
+# include "signal.h"
+# include "stdbool.h"
+# include "stdio.h"
+# include "stdlib.h"
+# include "unistd.h"
+# include <errno.h>
+# include <fcntl.h>
+# include <readline/history.h>
+# include <readline/readline.h>
+# include <string.h>
+# include <sys/stat.h>
+# include <sys/wait.h>
+# include <termios.h>
+
+extern int				g_status;
 
 enum
 {
-	FREE,
-	ALLOC,
-	CLOSE,
-	OPEN,
+	AJOUTER,
+	FREYI
 };
-typedef struct ft_free
-{
-	void			*add;
-	struct ft_free	*next;
-}	t_free;
-typedef struct s_fd
-{
-	int			fd;
-	struct s_fd	*next;
-}	t_fd;
-typedef struct t_token_node
-{
-	int					type;
-	char				*value;
-	bool				flag;
-	int					fd_hrd;
-	struct t_token_node	*next;
-}	t_token_node;
 
-typedef struct command_node
+typedef enum token_type
 {
-	char				**args;
-	int					infile;
-	int					outfile;
-	bool				isfirst;
-	bool				islast;
-	t_token_node		*redir;
-	struct command_node	*next;
-}	t_cmd;
-typedef enum tokenize
-{
-	REDIRECT_APPEND,
-	REDIRECT_OUT,
 	REDIRECT_IN,
+	REDIRECT_APPEND,
 	HEREDOC,
+	REDIRECT_OUT,
 	SPC,
 	STRING,
 	PIPE,
 	DOUBLE_Q,
 	SINGLE_Q,
-	VAR,	
+	VAR,
 	EXIT_STATUS,
 	DOUBLE_DLR
-}	t_token;
+}						t_token_type;
 
-typedef struct s_vars
+typedef struct s_free
 {
-	char	**res;
-	size_t	i;
-	int		j;
-	int		flag;
-	int		start;
-}	t_vars;
+	void				*add;
+	struct s_free		*next;
+}						t_free;
 
-typedef struct s_expand
+typedef struct s_fd
 {
-	char			*key;
-	char			*value;
-	bool			isnull;
-	bool			isequal;
-	bool			ishiden;
-	struct s_expand	*next;
-}	t_expand;
+	int					fd;
+	struct s_fd			*next;
+}						t_fd;
 
-typedef struct s_export
+typedef struct s_token_node
 {
-	char	*key;
-	char	*value;
-	bool	isnull;
-	bool	flag;
-	int		exit_status;
-	int		i;
-	int		j;
-}	t_export;
+	int					type;
+	char				*value;
+	bool				flag;
+	int					fd_hrd;
+	struct s_token_node	*next;
+}						t_token_node;
 
-char			**ft_split(char const *str, char c);
-size_t			ft_strlen(const char *s);
-char			*ft_strdup(const char *s1);
-char			*ft_substr(char const *s, unsigned int start, size_t len);
-char			*ft_strjoin(char const *s1, char const *s2);
-void			ft_putendl_fd(char *s, int fd);
-int				ft_lstsize(t_token_node *lst);
-int				ft_isalnum(int c);
-int				ft_isdigit(int c);
-char			*ft_itoa(int n);
-char			*ft_strjoin_env(char const *s1, char const *s2);
-char			*ft_strdup_env(const char *s1);
-char			*ft_substr_env(char const *s, unsigned int start, size_t len);
-t_expand		*addnew_expand_node_env(char *key, char *value);
-void			lstadd_back_expand_env(t_expand **lst, t_expand *new_node);
-bool			not_space(char c);
-bool			is_space(char c);
-int				ft_single_double(t_token_node **head, const char *cmd, int i);
-int				ft_dollar(t_token_node **head, const char *cmd, int *i);
-int				ft_spaces(t_token_node **head, const char *cmd, int *i);
-void			handle_single_quotes(int start, const char *cmd,
-					t_token_node **head);
-void			handle_double_quotes(int start, const char *cmd,
-					t_token_node **head);
-void			ft_process_vars(const char *cmd, t_token_node **head, int i);
-int				print_error_quote(const char *cmd);
-int				quote_error_handling(const char *buffer, size_t *i, char c);
-t_token_node	*ft_lstlast(t_token_node *lst);
-t_token_node	*tokenization(const char *cmd, t_token_node **head);
-t_token_node	*addnew_tkn_node(int token, char *value, int fd);
-void			lstadd_back(t_token_node **lst, t_token_node *new);
-bool			is_var(char c);
-bool			is_string(char c);
-int				handle_errors_cmd(t_token_node *head, const char *cmd);
-char			*ft_get_var(char *str_var);
-char			*get_until_var_exp(char *str_var);
-t_token_node	*expand_and_print_vars(t_token_node *head, t_expand *env,
-					int exit_status);
-char			*get_str_env(t_expand *env, char *str_var);
-void			*ft_malloc(size_t size, int status);
-void			*ft_malloc_env(size_t size, int status);
-char			*ft_substr_env(char const *s, unsigned int start, size_t len);
-char			*ft_strdup_env(const char *s1);
-t_expand		*addnew_expand_node_env(char *key, char *value);
-void			lstadd_back_expand_env(t_expand **lst, t_expand *new_node);
-void			*ft_malloc_env(size_t size, int status);
-char			*ft_strjoin_env(char const *s1, char const *s2);
-void			init_env(t_expand **head, char *env[]);
-void			ft_close_fds(int fd, int status);
-void			ft_execution(t_cmd *cmd, t_expand **envp,
-					int *exit_status);
-int				exe_bultin_in_parent(char *cmd[], t_expand **env,
-					int *exit_status);
-void			ft_execute_bultin(char *cmd[], t_expand **envp,
-					int *exit_status);
-int				exe_one_cmd_only(t_cmd *cmd, t_expand **env,
-					int *exit_status);
-char			**get_envp(t_expand *lst_envp);
-void			ft_execute_node(char *cmd[], t_expand *envp, char **str_envp,
-					int *exit_status);
-char			**get_envp(t_expand *lst_envp);
-char			**ft_split_last_cmd(char *cmd);
-void			ft_putstr_fd(char *s, int fd);
-void			handler(int sig);
-void			set_cmd_false_true(t_cmd **cmds);
-int				*allocat_pids(t_cmd *cmd);
-void			init_fds(t_cmd **cmds);
-void			pipe_line(t_cmd *cmd, t_expand **env_lst, char *env[],
-					int *exit_status);
-void			ft_pwd(t_expand *env);
-int				ft_cd(char *path, t_expand *env);
-void			ft_echo(char **cmd);
-void			ft_env(char **cmd, t_expand *envp);
-int				ft_unset(char **cmd, t_expand **envp);
-int				ft_export(char **cmd, t_expand **envp);
-int				pars_key(char *cmd);
-int				is_builtin(t_cmd *cmd);
-void			get_env_export(t_expand *envp);
-int				ft_exit(char **cmd, int exit_status);
-void			rm_dbl_q(t_token_node *head);
-void			rm_sgl_q(t_token_node *head);
-t_token_node	*skip_dr(t_token_node *head);
-char			*ft_get_cwd(char *new_path, int mode);
-t_expand		*ft_lst_last(t_expand *lst);
-void			ft_lst_add_back(t_expand **lst, t_expand *new_node);
-int				ft_strcmp(char *s1, char *s2);
-void			ft_del_node(t_expand **lst, char *key);
-t_expand		*ft_lst_new(char *key, char *val);
-void			ft_free_node(t_expand *node);
-size_t			ft_lst_size(t_expand *lst);
-char			*ft_itoa(int n);
-int				is_string_type(int type);
-t_cmd			*passing(t_token_node *head);
-t_token_node	*rm_redirect(t_token_node *head);
-t_token_node	*ft_concatenate(t_token_node *head);
-void			process_shell_input(t_token_node **head, const char **cmd,
-					int *exit_st, t_expand *env_e);
-void			clean_fd_cmd(const char *cmd);
-void			clean_exit(const char *cmd, int *exit_st);
-void			shell_signal_read(const char **cmd, int *exit_st);
-void			ft_heredoc(t_token_node *head, t_expand *env, int *exit_status);
-void			ft_sig_handler_her_doc(int sig);
-bool			ft_hr_dc_cntrl_c(t_token_node *head);
-char			*expand_heredoc(char *cmd, t_expand *env, int exit_status);
-int				write_to_file(char *buffer);
-bool			is_redirection(int type);
-char			*ft_str_exp_double_q(char *str_var, t_expand *env,
-					int exit_status);
-char			*ft_strtrim(char const *s1, char const *set);
-t_cmd			*ft_split_cmd(t_token_node *new_head);	
-void			add_new_redir(t_token_node **new, t_token_node *new_head,
-					t_token_node **redir);
-int				ft_count_cmd(t_token_node *head);
-t_cmd			*addnew_cmd(char **args, t_token_node *head_cmd);
-void			change_pwd(t_expand **env);
-void			change_oldpwd(t_expand **env);
-t_expand		*get_oldpwd(t_expand *env);
-t_expand		*get_pwd(t_expand *env);
-char			*get_home(t_expand *env);
-int				red_out(t_token_node *tmp, t_cmd *head);
-int				red_append(t_token_node *tmp, t_cmd *head);
-int				red_in(t_token_node *tmp, t_cmd *head);
-int				red_heredoc(t_token_node *tmp, t_cmd *head);
-void			redirection_loop(t_token_node *tmp, t_cmd *head);
+typedef struct command_node
+{
+	char				**argv;
+	int					infile;
+	int					outfile;
+	bool				isfirst;
+	bool				islast;
+	int					pipe_fd[2];
+	t_token_node		*red;
+	struct command_node	*next;
+}						t_cmd;
 
-void			ft_get_exit_status(int *exit_status,
-					int *pid, int i, struct termios *term);
-void			ft_cmd_redirection(t_cmd *cmd);
-void			ft_piping(t_cmd *cmd, int tmp_fd_in, int *fd);
-void			ft_close_cmd_fd(t_cmd *cmd, int *tmp_fd_in, int *fd);
-char			*check_path(char **path, char *cmd);
-void			ft_change_oldpwd(t_expand *oldpwd, t_expand *env, char *op);
-void			ft_change_pwd(t_expand *new_pwd, t_expand *env, char *np);
-size_t			ft_strlcpy(char *dst, const char *src, size_t dstsize);
+typedef struct s_env_var
+{
+	char				*cle;
+	char				*value;
+	struct s_env_var	*next;
+	bool				env_flag;
+}						t_env_var;
+
+typedef struct s_pwd_data
+{
+	char				*pwd_before;
+	char				*oldpwd_before;
+	char				oldpwd[PATH_MAX];
+	char				newpwd[PATH_MAX];
+}						t_pwd_data;
+
+typedef struct s_minishell
+{
+	t_env_var			*envp;
+	t_cmd				*cmd_list;
+	char				logical_pwd[PATH_MAX];
+	int					exit_status;
+}						t_minishell;
+
+int						search_hrd(t_token_node *debut);
+int						oui_space(char *str);
+int						ft_fofo(char *str, char c);
+
+char					**split_words_and_spaces(const char *str);
+char					*join_flag_tokens(t_token_node **cur);
+
+bool					is_strict_assign_token(const char *value);
+bool					is_assign_form(const char *value);
+bool					start_zone_has_equal(t_token_node *start);
+
+t_token_node			*change_flag(t_token_node *debut);
+t_token_node			*regrouper_tokens_marques(t_token_node *head);
+t_token_node			*fix_isolated_flagged_tokens(t_token_node *head);
+
+t_cmd					*ft_prepare_cmd(t_token_node *debut_token,
+							t_env_var *debut_env, t_minishell *data);
+void					handle_input(t_env_var *debut_env, t_minishell *data);
+
+void					clean_cmd_line(char *command);
+int						invalide_fd_hrdc(t_token_node *debut);
+void					unset_free(t_env_var *current, int status);
+size_t					ft_strlen(const char *str);
+int						is_space(char c);
+int						ft_isalnum(int c);
+int						ft_isdigit(int c);
+int						is_quotes(char c);
+int						is_redirection(char c);
+int						is_red(int type);
+int						validate_quotes(char *command, bool print);
+int						validate_redirections(t_token_node *debut, bool print);
+int						validate_pipe_position(t_token_node *debut, bool print);
+int						check_double_pipe_error(t_token_node *debut,
+							bool print);
+int						verify_cmd(t_token_node *debut_token, char *command,
+							bool print);
+int						valide_delimiter(int type);
+int						readline_hdc(char *delimiter, t_env_var *env, int flag,
+							t_minishell *data);
+int						write_to_file(char *buffer);
+int						is_espace(char c);
+int						ft_count_args_cmd(t_token_node *debut);
+
+char					*ft_strdup(const char *s);
+char					*ft_substr(char const *s, unsigned int start,
+							size_t len);
+char					*ft_strtrim(char const *s1, char const *set);
+char					*ft_strjoin(char const *s1, char const *s2);
+char					*ft_itoa(int n);
+char					*lstlast_token(t_token_node *cur);
+char					*ft_delimiter(t_token_node **debut, int *flag);
+char					*decoupe_chaine_en_segment(char *str_var);
+
+char					*expand_segment(char *str_var, t_env_var *env,
+							t_minishell *data);
+char					*get_var_sigle_dolar(char *str_var, t_env_var *env);
+char					*ft_get_var(char *str_var);
+char					*get_var_depui_env(t_env_var *env, char *get_var);
+char					*add_cmd_dn_buffer(char *cmd, char *buffer);
+char					**ft_decoupe_en_mots(char *token_value);
+char					*expand_vars_and_heredoc(char *cmd, t_env_var *env,
+							t_minishell *data);
+void					init_env(t_env_var **debut_env, char **env,
+							t_minishell *data);
+void					*ft_malloc(size_t size);
+t_free					*add_new_free(void *rest);
+void					add_fin_free(t_free **debut, t_free *new);
+void					ft_free_all(t_free *debut);
+void					free_env(t_env_var *debut);
+void					add_lst_back_token(t_token_node **debut_token,
+							t_token_node *new);
+void					ft_string(int i, char *commande,
+							t_token_node **debut_token);
+void					ft_espase(int *i, char *commande,
+							t_token_node **debut_token);
+void					ft_single_double_qoutes(int i, char *command,
+							t_token_node **debut_token);
+void					ft_redirection(int i, char *command,
+							t_token_node **debut_token);
+void					ft_dollar(int *i, char *command,
+							t_token_node **debut_token);
+void					suprime_qoutes(t_token_node *debut);
+void					add_lst_back_env(t_env_var **lst, t_env_var *new_node);
+void					ft_herdoc(t_token_node *debut, t_env_var *env,
+							t_minishell *data);
+void					clean_exit(char *commande, t_minishell *data);
+void					ft_handler_signal(void);
+void					handel_herdoc(int sig);
+void					add_lst_back_cmd(t_cmd **debut_cmd, t_cmd *new);
+void					new_redirection(t_token_node *debut_tmp,
+							t_token_node **new, t_token_node **debut_red);
+t_token_node			*gestion_input(char **command,
+							t_token_node **debut_token, t_env_var *env,
+							t_minishell *data);
+t_token_node			*ft_tokenization(char *command,
+							t_token_node **debut_token);
+t_token_node			*new_token(int type_token, char *value, int fd);
+
+t_token_node			*expand_var(t_token_node *debut, t_env_var *env,
+							t_minishell *data);
+t_token_node			*ft_concate_tkn(t_token_node *debut);
+t_token_node			*remove_red(t_token_node *debut);
+t_token_node			*remove_invalid_tokens(t_token_node *debut);
+
+t_cmd					*set_cmd_false_true(t_cmd **cmds);
+t_cmd					*token_list_to_cmd_list(t_token_node *debut);
+t_cmd					*ft_split_cmd(t_token_node *debut_tmp);
+t_cmd					*new_cmd(char **args, t_token_node *debut_red);
+
+// excution
+int						is_builtin(char *cmd);
+void					execute_cmds(t_minishell *data);
+void					exec_builtin(t_cmd *cmd, t_minishell *data);
+void					exec_echo(char **argv, t_minishell *data);
+void					exec_cd(char **argv, t_minishell *data);
+int						env_size(t_env_var *env);
+void					exec_export(char **argv, t_env_var *envp,
+							t_minishell *data);
+void					exec_exit(char **argv, bool is_forked,
+							t_minishell *data);
+bool					check_varname(const char *arg);
+void					exec_unset(t_env_var **env, char **argv,
+							t_minishell *data);
+t_env_var				*get_env_value(t_env_var *env, const char *key);
+t_env_var				*add_new_env(char *key, char *value, bool env_flag);
+void					clear_cmd_list(t_cmd **cmd_list);
+char					**env_to_tab(t_env_var *env);
+void					restore_fd(t_cmd *cmd);
+int						set_redirection(t_cmd *cmd, t_minishell *data);
+char					**env_to_tab(t_env_var *env);
+char					**get_path_directories(char **env);
+char					*get_full_path_from_paths(char *command, char **paths);
+void					ft_free_split(char **split);
+char					*find_command_path(const char *command, char **env,
+							t_minishell *data);
+void					exec_external(t_cmd *cmd, t_minishell *data);
+void					execute_pipeline(t_cmd *cmd, t_minishell *data);
+void					close_fds_except_std(void);
+void					free_env(t_env_var *env);
+char					*get_env_value_char(t_env_var *env, const char *key);
+void					update_or_add_env_value(t_env_var **env, char *key,
+							char *value, bool env_flag);
+void					close_fds_except_std(void);
+void					check_exit_status(int has_error, t_minishell *data);
+void					set_env_value(t_env_var **env, char *key, char *value);
+bool					is_append_export(const char *arg);
+void					print_sorted_env(t_env_var *env);
+void					sort_env_tab(char **tab);
+void					ignore_sig(void);
+int						get_physical_pwd(char *buffer);
+int						get_logical_pwd(char *buffer, t_env_var *envp);
+char					*join_path(const char *base, const char *relative);
+void					exec_env(char *argv, t_env_var *env, t_minishell *data);
+void					handle_empty_executor(char *path, char **envp);
+void					restore_sig(void);
+int						fail_redirection(t_cmd *cmd);
+void					handle_children(t_cmd *cmd, char **envp,
+							t_minishell *data);
+// Errors
+
+void					error_command_not_found(const char *cmd,
+							t_minishell *data);
+void					error_permission_denied(const char *cmd,
+							t_minishell *data);
+void					error_no_such_file(const char *cmd, t_minishell *data);
+void					error_fork(t_minishell *data);
+void					error_open_file(const char *filename,
+							t_minishell *data);
+void					error_is_directory(const char *cmd);
+void					error_open_dir(void);
+void					handle_cd_error(char *target_dir, t_minishell *data);
+
+// libf utils
+
+long					ft_atol(const char *str);
+int						ft_isalpha(int c);
+char					**ft_split(char const *s, char c);
+char					*ft_strchr(const char *s, int c);
+size_t					ft_strlen(const char *s);
+int						ft_strncmp(const char *str1, const char *str2,
+							size_t n);
+char					*ft_substr(char const *s, unsigned int start,
+							size_t len);
+int						ft_strcmp(const char *s1, const char *s2);
+void					ft_putstr_fd(const char *s, int fd);
+size_t					ft_strlcpy(char *dest, const char *src, size_t size);
+char					*ft_strcat(char *dest, const char *src);
+char					*ft_strcpy(char *dest, const char *src);
 
 #endif

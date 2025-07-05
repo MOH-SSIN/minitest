@@ -5,72 +5,122 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: mez-zahi <mez-zahi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/03/02 13:54:22 by belguabd          #+#    #+#             */
-/*   Updated: 2025/05/02 14:43:44 by mez-zahi         ###   ########.fr       */
+/*   Created: 2025/04/20 01:23:06 by mez-zahi          #+#    #+#             */
+/*   Updated: 2025/06/25 17:46:15 by mez-zahi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "include/minishell.h"
 
-int	g_sig;
+int			g_status = 0;
 
-void	sig_handler(int sig)
+t_cmd	*ft_prepare_cmd(t_token_node *debut_token, t_env_var *debut_env,
+		t_minishell *data)
 {
-	rl_catch_signals = 0;
-	if (sig == SIGINT)
-	{
-		write(1, "\n", 1);
-		rl_replace_line("", 0);
-		rl_on_new_line();
-		rl_redisplay();
-		g_sig = 1;
-	}
+	t_token_node	*debut;
+	t_cmd			*cmd_final;
+
+	debut = expand_var(debut_token, debut_env, data);
+	debut = change_flag(debut);
+	debut = regrouper_tokens_marques(debut);
+	debut = ft_concate_tkn(debut);
+	debut = fix_isolated_flagged_tokens(debut);
+	debut = remove_red(debut);
+	debut = remove_invalid_tokens(debut);
+	cmd_final = token_list_to_cmd_list(debut);
+	return (cmd_final);
 }
 
-void	shell_signal_read(const char **cmd, int *exit_st)
+void	handle_input(t_env_var *debut_env, t_minishell *data)
 {
-	signal(SIGINT, sig_handler);
-	signal(SIGQUIT, handler);
-	*cmd = readline("➜ minishell ");
-	if (g_sig == 1)
-		*exit_st = 1;
-	if (!*cmd)
-	{
-		ft_malloc(FREE, FREE);
-		ft_malloc_env(FREE, FREE);
-		ft_close_fds(FREE, CLOSE);
-		write(1, "exit\n", 5);
-		exit(*exit_st);
-	}
-	if (*cmd[0])
-		add_history(*cmd);
-}
+	char			*command;
+	t_token_node	*debut_token;
+	t_cmd			*cmd_final;
 
-int	main(int ac, char const *av[], char *env[])
-{
-	const char		*cmd;
-	t_token_node	*head;
-	t_expand		*env_e;
-	int				exit_st;
-
-	(1) && ((void)ac, (void)av, cmd = NULL, env_e = NULL);
-	init_env(&env_e, env);
-	rl_catch_signals = 0;
+	(1) && (command = NULL, cmd_final = NULL);
 	while (1 && isatty(STDIN_FILENO))
 	{
-		head = NULL;
-		process_shell_input(&head, &cmd, &exit_st, env_e);
-		// if (ft_hr_dc_cntrl_c(head))
-		// 	clean_fd_cmd(cmd);
-		// else if (handle_errors_cmd(head, cmd) == -1)
-		// 	clean_exit(cmd, &exit_st);
-		// else
-		// {
-		// 	head = expand_and_print_vars(head, env_e, exit_st);
-		// 	head = rm_redirect(ft_concatenate(head));
-		// 	ft_execution(passing(skip_dr(head)), &env_e, &exit_st);
-		// 	clean_fd_cmd(cmd);
-		// }
-		// g_sig = 0;
+		debut_env = data->envp;
+		debut_token = NULL;
+		gestion_input(&command, &debut_token, debut_env, data);
+		if (invalide_fd_hrdc(debut_token) == 1)
+			clean_cmd_line(command);
+		else if (verify_cmd(debut_token, command, true) == -1)
+			clean_exit(command, data);
+		else
+		{
+			cmd_final = ft_prepare_cmd(debut_token, debut_env, data);
+			data->cmd_list = set_cmd_false_true(&cmd_final);
+			execute_cmds(data);
+			clean_cmd_line(command);
+		}
+		if (command)
+			free(command);
+		g_status = 0;
 	}
+}
+
+t_env_var	*find_env(t_env_var *env, const char *name)
+{
+	while (env)
+	{
+		if (ft_strcmp(env->cle, name) == 0)
+			return (env);
+		env = env->next;
+	}
+	return (NULL);
+}
+
+void	handle_shlvl(t_env_var **env)
+{
+	t_env_var	*node;
+	int			lvl;
+
+	node = find_env(*env, "SHLVL");
+	if (node && node->value)
+	{
+		lvl = ft_atol(node->value);
+		if (lvl < 0)
+			node->value = ft_itoa(0);
+		else if (lvl == 999)
+		{
+			node->value = ft_strdup("");
+			lvl = 0;
+		}
+		else if (lvl >= 1000)
+			node->value = ft_itoa(1);
+		else
+		{
+			lvl++;
+			node->value = ft_itoa(lvl);
+		}
+	}
+	else
+		add_new_env("SHLVL", "1", true);
+}
+
+int	main(int argc, char **argv, char **env)
+{
+	t_env_var	*debut_env;
+	t_minishell	data;
+	char		*pwd_env;
+
+	(void)argc;
+	(void)argv;
+	debut_env = NULL;
+	init_env(&debut_env, env, &data);
+	data.envp = debut_env;
+	data.exit_status = 0;
+	handle_shlvl(&data.envp);
+	pwd_env = get_env_value_char(data.envp, "PWD");
+	if (pwd_env)
+		ft_strlcpy(data.logical_pwd, pwd_env, PATH_MAX);
+	else if (getcwd(data.logical_pwd, PATH_MAX))
+		;
+	else
+		ft_strlcpy(data.logical_pwd, "", PATH_MAX);
+	close_fds_except_std();
+	handle_input(debut_env, &data);
+	free_env(debut_env);
+	return (0);
 }
